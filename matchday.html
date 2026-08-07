@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<title>Matchday — Leagues, Teams & Players</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-a:#0b0f0c; --bg-b:#0e130f;
+    --surface:#141b16; --surface-hover:#1a2219;
+    --border:#26332b; --border-soft:#1c261f;
+    --text:#eef2ee; --text-dim:#8fa093; --text-faint:#4d5c52;
+    --pitch:#3fae5a; --pitch-bright:#55c96f; --pitch-soft:rgba(63,174,90,0.16);
+    --gold:#d4af37; --gold-bright:#e8c65a;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{
+    background:repeating-linear-gradient(180deg,var(--bg-a) 0px,var(--bg-a) 44px,var(--bg-b) 44px,var(--bg-b) 88px);
+    color:var(--text); font-family:'Inter', system-ui, sans-serif; -webkit-font-smoothing:antialiased;
+    scrollbar-color:var(--border) var(--bg-a); scrollbar-width:thin;
+  }
+  ::-webkit-scrollbar{ width:8px; } ::-webkit-scrollbar-track{ background:var(--bg-a); }
+  ::-webkit-scrollbar-thumb{ background:var(--border); border-radius:4px; }
+  button, input{ font-family:inherit; } button{ cursor:pointer; }
+  button:focus-visible, input:focus-visible{ outline:2px solid var(--pitch-bright); outline-offset:2px; border-radius:4px; }
+
+  .page{ max-width:1200px; margin:0 auto; padding:44px 28px 70px; opacity:0; animation:reveal .5s ease forwards; }
+  @keyframes reveal{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  .masthead{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:18px; margin-bottom:28px; }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand-mark{ width:38px; height:38px; border-radius:50%; background:var(--pitch); display:flex; align-items:center; justify-content:center; font-size:18px; }
+  .brand h1{ font-family:'Barlow Condensed', sans-serif; font-weight:800; font-size:26px; text-transform:uppercase; letter-spacing:.03em; }
+  .tabs{ display:flex; gap:6px; background:var(--surface); border:1px solid var(--border-soft); border-radius:10px; padding:4px; }
+  .tab-btn{ background:none; border:none; color:var(--text-dim); font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; padding:9px 18px; border-radius:7px; transition:all .15s ease; }
+  .tab-btn:hover:not(.active){ color:var(--text); }
+  .tab-btn.active{ background:var(--pitch); color:#0b0f0c; }
+
+  .breadcrumb{ display:flex; align-items:center; gap:8px; font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--text-dim); margin-bottom:6px; min-height:16px; flex-wrap:wrap; }
+  .breadcrumb button{ background:none; border:none; color:var(--pitch-bright); font-family:inherit; font-size:12px; }
+  .breadcrumb button:hover{ text-decoration:underline; }
+  .breadcrumb .sep{ color:var(--text-faint); }
+
+  .section-label{ font-family:'Barlow Condensed', sans-serif; font-weight:700; font-size:22px; text-transform:uppercase; letter-spacing:.02em; margin:8px 0 2px; }
+  .section-sub{ color:var(--text-dim); font-size:13px; margin-bottom:6px; }
+
+  .card-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(230px,1fr)); gap:16px; margin-top:20px; }
+
+  .league-card{ background:var(--surface); border:1px solid var(--border-soft); border-radius:12px; overflow:hidden; transition:transform .15s ease, border-color .15s ease; text-align:left; }
+  .league-card:hover{ transform:translateY(-2px); border-color:var(--pitch); }
+  .league-card .bar{ height:6px; }
+  .league-card .body{ padding:18px 20px; }
+  .league-card h3{ font-family:'Barlow Condensed', sans-serif; font-weight:700; font-size:24px; text-transform:uppercase; }
+  .league-card p{ color:var(--text-dim); font-size:13px; margin-top:3px; }
+  .league-card .meta{ font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--text-faint); margin-top:14px; }
+
+  .team-card{ background:var(--surface); border:1px solid var(--border-soft); border-radius:10px; padding:15px; display:flex; align-items:center; gap:12px; text-align:left; transition:border-color .15s ease, background .15s ease; }
+  .team-card:hover{ border-color:var(--pitch); background:var(--surface-hover); }
+  .badge{ width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Barlow Condensed', sans-serif; font-weight:700; font-size:15px; color:#0b0f0c; flex-shrink:0; }
+  .team-card .info h4{ font-size:14px; font-weight:600; }
+  .team-card .info span{ font-family:'JetBrains Mono', monospace; font-size:10.5px; color:var(--text-faint); }
+
+  .player-card{ background:var(--surface); border:1px solid var(--border-soft); border-radius:10px; padding:18px 14px; text-align:center; transition:border-color .15s ease; }
+  .player-card:hover{ border-color:var(--pitch); }
+  .avatar{ width:60px; height:60px; border-radius:50%; margin:0 auto 10px; display:flex; align-items:center; justify-content:center; font-family:'Barlow Condensed', sans-serif; font-weight:700; font-size:20px; color:#0b0f0c; position:relative; }
+  .avatar .num{ position:absolute; bottom:-3px; right:-3px; background:var(--bg-a); border:2px solid var(--surface); color:var(--text); font-family:'JetBrains Mono', monospace; font-size:10px; width:19px; height:19px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+  .p-name{ font-weight:600; font-size:13.5px; }
+  .p-cap{ color:var(--gold-bright); font-size:10px; font-family:'JetBrains Mono'; margin-top:1px; }
+  .p-pos{ font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--pitch-bright); margin-top:3px; }
+  .p-nat{ font-size:11px; color:var(--text-faint); margin-top:1px; }
+  .p-stats{ display:flex; justify-content:center; gap:12px; margin-top:11px; font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.03em; }
+  .p-stats b{ display:block; color:var(--text); font-size:13px; font-weight:600; }
+
+  .empty-msg{ grid-column:1/-1; text-align:center; padding:44px 20px; color:var(--text-faint); font-style:italic; font-size:13.5px; }
+
+  .predictions-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:18px; margin-top:22px; }
+  .pred-card{ background:var(--surface); border:1px solid var(--border-soft); border-radius:12px; padding:22px; position:relative; overflow:hidden; }
+  .pred-card::before{ content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--gold),var(--gold-bright)); }
+  .pred-card .tag{ font-family:'JetBrains Mono', monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-faint); }
+  .pred-card .trophy{ font-size:26px; margin:10px 0 2px; }
+  .pred-card h3{ font-family:'Barlow Condensed', sans-serif; font-weight:700; font-size:25px; color:var(--gold-bright); text-transform:uppercase; line-height:1.1; }
+  .pred-card .odds{ font-size:11.5px; color:var(--text-dim); margin-top:3px; font-family:'JetBrains Mono', monospace; }
+  .pred-card p{ font-size:12.5px; color:var(--text-dim); margin-top:12px; line-height:1.55; }
+
+  .foot{ margin-top:56px; text-align:center; color:var(--text-faint); font-size:11.5px; line-height:1.7; max-width:560px; margin-left:auto; margin-right:auto; }
+
+  @media (max-width:640px){
+    .page{ padding:30px 16px 50px; }
+    .card-grid{ grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); }
+  }
+  @media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="masthead">
+    <div class="brand"><span class="brand-mark">⚽</span><h1>Matchday</h1></div>
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="players">Players</button>
+      <button class="tab-btn" data-tab="predictions">Predictions</button>
+    </nav>
+  </header>
+
+  <section id="playersView">
+    <div id="breadcrumb" class="breadcrumb"></div>
+    <div id="leaguesArea">
+      <p class="section-sub">Pick a league to browse its clubs, then a club to see its players.</p>
+      <div id="leagueGrid" class="card-grid"></div>
+    </div>
+    <div id="teamsArea" style="display:none;">
+      <div id="teamGrid" class="card-grid"></div>
+    </div>
+    <div id="playersArea" style="display:none;">
+      <div id="playerGrid" class="card-grid"></div>
+    </div>
+  </section>
+
+  <section id="predictionsView" style="display:none;">
+    <p class="section-sub">Early-season 2026/27 title favourites, based on current market odds and squad form.</p>
+    <div id="predictionsGrid" class="predictions-grid"></div>
+  </section>
+
+  <footer class="foot">
+    Player photos are shown as styled initials, not real images. Rosters are a curated snapshot of notable squad players for each club — not every player in every league — and reflect recent form heading into 2026/27. Ask to expand any club's list.
+  </footer>
+</div>
+
+<script>
+  const LEAGUE_COLORS = { epl:"#8e5cf2", laliga:"#ff6b35", bundesliga:"#e0424c", seriea:"#2e90fa", ligue1:"#5b82e8" };
+
+  const DATA = {
+    epl: { label:"Premier League", country:"England", teams:[
+      { name:"Arsenal", players:[
+        {name:"Bukayo Saka", num:7, pos:"FW", nat:"ENG", g:16, a:9, apps:34},
+        {name:"Martin Ødegaard", num:8, pos:"MF", nat:"NOR", g:7, a:11, apps:32, capt:true},
+        {name:"Declan Rice", num:41, pos:"MF", nat:"ENG", g:4, a:6, apps:35},
+        {name:"William Saliba", num:2, pos:"DF", nat:"FRA", g:3, a:1, apps:36},
+        {name:"David Raya", num:1, pos:"GK", nat:"ESP", g:0, a:0, apps:36},
+        {name:"Viktor Gyökeres", num:14, pos:"FW", nat:"SWE", g:20, a:5, apps:33},
+      ]},
+      { name:"Manchester City", players:[
+        {name:"Erling Haaland", num:9, pos:"FW", nat:"NOR", g:27, a:5, apps:34},
+        {name:"Phil Foden", num:47, pos:"MF", nat:"ENG", g:10, a:8, apps:32},
+        {name:"Rodri", num:16, pos:"MF", nat:"ESP", g:2, a:4, apps:20, capt:true},
+        {name:"Ederson", num:31, pos:"GK", nat:"BRA", g:0, a:1, apps:30},
+        {name:"Bernardo Silva", num:20, pos:"MF", nat:"POR", g:8, a:9, apps:35},
+        {name:"Jérémy Doku", num:11, pos:"FW", nat:"BEL", g:6, a:8, apps:31},
+      ]},
+      { name:"Manchester United", players:[
+        {name:"Bruno Fernandes", num:8, pos:"MF", nat:"POR", g:10, a:9, apps:36, capt:true},
+        {name:"Kobbie Mainoo", num:37, pos:"MF", nat:"ENG", g:3, a:2, apps:28},
+        {name:"Rasmus Højlund", num:11, pos:"FW", nat:"DEN", g:10, a:3, apps:30},
+        {name:"André Onana", num:24, pos:"GK", nat:"CMR", g:0, a:0, apps:33},
+        {name:"Lisandro Martínez", num:6, pos:"DF", nat:"ARG", g:1, a:0, apps:25},
+      ]},
+      { name:"Liverpool", players:[
+        {name:"Mohamed Salah", num:11, pos:"FW", nat:"EGY", g:29, a:18, apps:38},
+        {name:"Virgil van Dijk", num:4, pos:"DF", nat:"NED", g:3, a:1, apps:34, capt:true},
+        {name:"Alisson Becker", num:1, pos:"GK", nat:"BRA", g:0, a:0, apps:30},
+        {name:"Alexis Mac Allister", num:10, pos:"MF", nat:"ARG", g:6, a:7, apps:33},
+        {name:"Dominik Szoboszlai", num:8, pos:"MF", nat:"HUN", g:8, a:9, apps:36},
+        {name:"Cody Gakpo", num:18, pos:"FW", nat:"NED", g:14, a:6, apps:35},
+      ]},
+      { name:"Chelsea", players:[
+        {name:"Cole Palmer", num:20, pos:"FW", nat:"ENG", g:15, a:12, apps:34},
+        {name:"Enzo Fernández", num:5, pos:"MF", nat:"ARG", g:5, a:6, apps:33},
+        {name:"Moisés Caicedo", num:25, pos:"MF", nat:"ECU", g:2, a:3, apps:35},
+        {name:"Robert Sánchez", num:1, pos:"GK", nat:"ESP", g:0, a:0, apps:31},
+        {name:"Estêvão", num:41, pos:"FW", nat:"BRA", g:9, a:7, apps:30},
+      ]},
+      { name:"Tottenham Hotspur", players:[
+        {name:"James Maddison", num:10, pos:"MF", nat:"ENG", g:7, a:9, apps:29, capt:true},
+        {name:"Micky van de Ven", num:37, pos:"DF", nat:"NED", g:3, a:0, apps:32},
+        {name:"Guglielmo Vicario", num:1, pos:"GK", nat:"ITA", g:0, a:0, apps:34},
+        {name:"Dominic Solanke", num:19, pos:"FW", nat:"ENG", g:12, a:4, apps:28},
+      ]},
+      { name:"Newcastle United", players:[
+        {name:"Bruno Guimarães", num:39, pos:"MF", nat:"BRA", g:6, a:7, apps:35, capt:true},
+        {name:"Anthony Gordon", num:10, pos:"FW", nat:"ENG", g:11, a:8, apps:36},
+        {name:"Nick Pope", num:1, pos:"GK", nat:"ENG", g:0, a:0, apps:36},
+        {name:"Sven Botman", num:4, pos:"DF", nat:"NED", g:2, a:0, apps:29},
+      ]},
+      { name:"Aston Villa", players:[
+        {name:"Ollie Watkins", num:11, pos:"FW", nat:"ENG", g:17, a:8, apps:35},
+        {name:"Emiliano Martínez", num:1, pos:"GK", nat:"ARG", g:0, a:0, apps:34, capt:true},
+        {name:"Morgan Rogers", num:7, pos:"MF", nat:"ENG", g:9, a:10, apps:36},
+      ]},
+      { name:"Brighton & Hove Albion", players:[
+        {name:"Kaoru Mitoma", num:22, pos:"FW", nat:"JPN", g:8, a:6, apps:30},
+        {name:"Bart Verbruggen", num:1, pos:"GK", nat:"NED", g:0, a:0, apps:32},
+      ]},
+      { name:"Everton", players:[
+        {name:"Jordan Pickford", num:1, pos:"GK", nat:"ENG", g:0, a:0, apps:36, capt:true},
+        {name:"Idrissa Gueye", num:17, pos:"MF", nat:"SEN", g:1, a:2, apps:25},
+      ]},
+      { name:"Fulham", players:[
+        {name:"Bernd Leno", num:1, pos:"GK", nat:"GER", g:0, a:0, apps:33},
+        {name:"Rodrigo Muniz", num:9, pos:"FW", nat:"BRA", g:12, a:3, apps:32},
+      ]},
+      { name:"Crystal Palace", players:[
+        {name:"Marc Guéhi", num:6, pos:"DF", nat:"ENG", g:2, a:1, apps:34, capt:true},
+      ]},
+      { name:"Brentford", players:[
+        {name:"Christian Nørgaard", num:6, pos:"MF", nat:"DEN", g:3, a:1, apps:30, capt:true},
+        {name:"Kevin Schade", num:19, pos:"FW", nat:"GER", g:10, a:5, apps:32},
+      ]},
+      { name:"Nottingham Forest", players:[
+        {name:"Morgan Gibbs-White", num:10, pos:"MF", nat:"ENG", g:8, a:9, apps:35, capt:true},
+      ]},
+      { name:"Bournemouth", players:[
+        {name:"Justin Kluivert", num:29, pos:"FW", nat:"NED", g:9, a:4, apps:28},
+      ]},
+      { name:"Leeds United", players:[
+        {name:"Ethan Ampadu", num:5, pos:"MF", nat:"WAL", g:1, a:1, apps:33, capt:true},
+      ]},
+      { name:"Sunderland", players:[
+        {name:"Dan Neil", num:14, pos:"MF", nat:"ENG", g:3, a:4, apps:31},
+      ]},
+      { name:"Ipswich Town", players:[
+        {name:"Sam Morsy", num:5, pos:"MF", nat:"EGY", g:2, a:1, apps:30, capt:true},
+      ]},
+      { name:"Coventry City", players:[] },
+      { name:"Hull City", players:[] },
+    ]},
+    laliga: { label:"La Liga", country:"Spain", teams:[
+      { name:"Barcelona", players:[
+        {name:"Lamine Yamal", num:19, pos:"FW", nat:"ESP", g:14, a:11, apps:32},
+        {name:"Robert Lewandowski", num:9, pos:"FW", nat:"POL", g:22, a:4, apps:29},
+        {name:"Pedri", num:8, pos:"MF", nat:"ESP", g:6, a:9, apps:31},
+        {name:"Raphinha", num:11, pos:"FW", nat:"BRA", g:20, a:13, apps:34},
+        {name:"Marc-André ter Stegen", num:1, pos:"GK", nat:"GER", g:0, a:0, apps:20},
+        {name:"Frenkie de Jong", num:21, pos:"MF", nat:"NED", g:3, a:5, apps:28, capt:true},
+      ]},
+      { name:"Real Madrid", players:[
+        {name:"Kylian Mbappé", num:9, pos:"FW", nat:"FRA", g:31, a:7, apps:33},
+        {name:"Jude Bellingham", num:5, pos:"MF", nat:"ENG", g:12, a:8, apps:30},
+        {name:"Vinícius Júnior", num:7, pos:"FW", nat:"BRA", g:18, a:12, apps:32},
+        {name:"Thibaut Courtois", num:1, pos:"GK", nat:"BEL", g:0, a:0, apps:30, capt:true},
+        {name:"Federico Valverde", num:8, pos:"MF", nat:"URU", g:6, a:7, apps:34},
+        {name:"Éder Militão", num:3, pos:"DF", nat:"BRA", g:2, a:0, apps:25},
+      ]},
+      { name:"Atlético Madrid", players:[
+        {name:"Julián Álvarez", num:19, pos:"FW", nat:"ARG", g:18, a:9, apps:33},
+        {name:"Jan Oblak", num:13, pos:"GK", nat:"SVN", g:0, a:0, apps:30, capt:true},
+        {name:"Antoine Griezmann", num:7, pos:"FW", nat:"FRA", g:14, a:10, apps:32},
+        {name:"Koke", num:6, pos:"MF", nat:"ESP", g:2, a:4, apps:28},
+      ]},
+      { name:"Athletic Bilbao", players:[
+        {name:"Nico Williams", num:10, pos:"FW", nat:"ESP", g:9, a:8, apps:30},
+        {name:"Iñaki Williams", num:9, pos:"FW", nat:"GHA", g:11, a:4, apps:32},
+        {name:"Unai Simón", num:1, pos:"GK", nat:"ESP", g:0, a:0, apps:33, capt:true},
+      ]},
+      { name:"Villarreal", players:[
+        {name:"Ayoze Pérez", num:7, pos:"FW", nat:"ESP", g:12, a:5, apps:33},
+      ]},
+      { name:"Real Betis", players:[
+        {name:"Isco", num:22, pos:"MF", nat:"ESP", g:5, a:7, apps:28},
+        {name:"William Carvalho", num:14, pos:"MF", nat:"POR", g:2, a:2, apps:31, capt:true},
+      ]},
+      { name:"Real Sociedad", players:[
+        {name:"Mikel Oyarzabal", num:10, pos:"FW", nat:"ESP", g:13, a:4, apps:29, capt:true},
+      ]},
+      { name:"Valencia", players:[
+        {name:"Hugo Duro", num:9, pos:"FW", nat:"ESP", g:10, a:3, apps:32},
+      ]},
+      { name:"Sevilla", players:[
+        {name:"Isaac Romero", num:9, pos:"FW", nat:"ESP", g:8, a:2, apps:30},
+      ]},
+      { name:"Celta Vigo", players:[
+        {name:"Iago Aspas", num:10, pos:"FW", nat:"ESP", g:11, a:6, apps:33, capt:true},
+      ]},
+      { name:"Getafe", players:[
+        {name:"Borja Mayoral", num:9, pos:"FW", nat:"ESP", g:9, a:1, apps:31},
+      ]},
+      { name:"Osasuna", players:[
+        {name:"Ante Budimir", num:9, pos:"FW", nat:"CRO", g:15, a:2, apps:34},
+      ]},
+      { name:"Rayo Vallecano", players:[
+        {name:"Isi Palazón", num:14, pos:"MF", nat:"ESP", g:6, a:5, apps:33},
+      ]},
+      { name:"Alavés", players:[] },
+      { name:"Espanyol", players:[] },
+      { name:"Elche", players:[] },
+      { name:"Levante", players:[] },
+      { name:"Racing Santander", players:[] },
+      { name:"Deportivo La Coruña", players:[] },
+      { name:"Almería", players:[] },
+    ]},
+    bundesliga: { label:"Bundesliga", country:"Germany", teams:[
+      { name:"Bayern Munich", players:[
+        {name:"Harry Kane", num:9, pos:"FW", nat:"ENG", g:26, a:7, apps:31},
+        {name:"Jamal Musiala", num:42, pos:"MF", nat:"GER", g:15, a:10, apps:28},
+        {name:"Michael Olise", num:17, pos:"FW", nat:"FRA", g:12, a:11, apps:30},
+        {name:"Manuel Neuer", num:1, pos:"GK", nat:"GER", g:0, a:0, apps:32, capt:true},
+        {name:"Joshua Kimmich", num:6, pos:"MF", nat:"GER", g:4, a:9, apps:33},
+        {name:"Alphonso Davies", num:19, pos:"DF", nat:"CAN", g:2, a:5, apps:27},
+      ]},
+      { name:"Borussia Dortmund", players:[
+        {name:"Serhou Guirassy", num:9, pos:"FW", nat:"GUI", g:20, a:4, apps:32},
+        {name:"Julian Brandt", num:19, pos:"MF", nat:"GER", g:7, a:8, apps:31},
+        {name:"Gregor Kobel", num:1, pos:"GK", nat:"SUI", g:0, a:0, apps:32, capt:true},
+      ]},
+      { name:"Bayer Leverkusen", players:[
+        {name:"Victor Boniface", num:9, pos:"FW", nat:"NGA", g:14, a:5, apps:28},
+        {name:"Granit Xhaka", num:34, pos:"MF", nat:"SUI", g:3, a:6, apps:33, capt:true},
+      ]},
+      { name:"RB Leipzig", players:[
+        {name:"Loïs Openda", num:11, pos:"FW", nat:"BEL", g:17, a:6, apps:31},
+        {name:"Xavi Simons", num:10, pos:"MF", nat:"NED", g:9, a:8, apps:32},
+      ]},
+      { name:"Eintracht Frankfurt", players:[
+        {name:"Kevin Trapp", num:1, pos:"GK", nat:"GER", g:0, a:0, apps:33, capt:true},
+      ]},
+      { name:"VfB Stuttgart", players:[
+        {name:"Deniz Undav", num:27, pos:"FW", nat:"GER", g:16, a:5, apps:31},
+      ]},
+      { name:"SC Freiburg", players:[
+        {name:"Vincenzo Grifo", num:32, pos:"MF", nat:"ITA", g:9, a:8, apps:32, capt:true},
+      ]},
+      { name:"Werder Bremen", players:[
+        {name:"Marvin Ducksch", num:9, pos:"FW", nat:"GER", g:11, a:3, apps:30},
+      ]},
+      { name:"Mainz 05", players:[
+        {name:"Jonathan Burkardt", num:9, pos:"FW", nat:"GER", g:13, a:2, apps:29},
+      ]},
+      { name:"Union Berlin", players:[
+        {name:"Robin Gosens", num:5, pos:"DF", nat:"GER", g:3, a:4, apps:28},
+      ]},
+      { name:"Borussia Mönchengladbach", players:[] },
+      { name:"TSG Hoffenheim", players:[] },
+      { name:"FC Augsburg", players:[] },
+      { name:"VfL Bochum", players:[] },
+      { name:"Holstein Kiel", players:[] },
+      { name:"Schalke 04", players:[] },
+      { name:"SV Elversberg", players:[] },
+      { name:"SC Paderborn", players:[] },
+    ]},
+    seriea: { label:"Serie A", country:"Italy", teams:[
+      { name:"Inter Milan", players:[
+        {name:"Lautaro Martínez", num:10, pos:"FW", nat:"ARG", g:17, a:5, apps:33, capt:true},
+        {name:"Marcus Thuram", num:9, pos:"FW", nat:"FRA", g:14, a:8, apps:32},
+        {name:"Nicolò Barella", num:23, pos:"MF", nat:"ITA", g:6, a:7, apps:34},
+        {name:"Yann Sommer", num:1, pos:"GK", nat:"SUI", g:0, a:0, apps:30},
+        {name:"Hakan Çalhanoğlu", num:20, pos:"MF", nat:"TUR", g:7, a:9, apps:31},
+      ]},
+      { name:"Napoli", players:[
+        {name:"Kevin De Bruyne", num:17, pos:"MF", nat:"BEL", g:9, a:12, apps:30},
+        {name:"Romelu Lukaku", num:11, pos:"FW", nat:"BEL", g:14, a:5, apps:29},
+        {name:"Scott McTominay", num:8, pos:"MF", nat:"SCO", g:13, a:4, apps:33},
+        {name:"Alex Meret", num:1, pos:"GK", nat:"ITA", g:0, a:0, apps:32, capt:true},
+        {name:"Giovanni Di Lorenzo", num:22, pos:"DF", nat:"ITA", g:2, a:4, apps:34},
+      ]},
+      { name:"Juventus", players:[
+        {name:"Dušan Vlahović", num:9, pos:"FW", nat:"SRB", g:16, a:3, apps:31},
+        {name:"Kenan Yıldız", num:10, pos:"FW", nat:"TUR", g:9, a:7, apps:32},
+        {name:"Manuel Locatelli", num:5, pos:"MF", nat:"ITA", g:3, a:4, apps:34, capt:true},
+      ]},
+      { name:"AC Milan", players:[
+        {name:"Christian Pulisic", num:11, pos:"FW", nat:"USA", g:14, a:9, apps:33},
+        {name:"Mike Maignan", num:16, pos:"GK", nat:"FRA", g:0, a:0, apps:31, capt:true},
+        {name:"Rafael Leão", num:10, pos:"FW", nat:"POR", g:11, a:7, apps:30},
+        {name:"Theo Hernández", num:19, pos:"DF", nat:"FRA", g:3, a:6, apps:32},
+      ]},
+      { name:"Roma", players:[
+        {name:"Paulo Dybala", num:21, pos:"FW", nat:"ARG", g:10, a:8, apps:26, capt:true},
+      ]},
+      { name:"Atalanta", players:[
+        {name:"Ademola Lookman", num:11, pos:"FW", nat:"NGA", g:13, a:6, apps:30},
+      ]},
+      { name:"Lazio", players:[
+        {name:"Mattia Zaccagni", num:10, pos:"FW", nat:"ITA", g:9, a:6, apps:32, capt:true},
+      ]},
+      { name:"Fiorentina", players:[
+        {name:"Moise Kean", num:20, pos:"FW", nat:"ITA", g:19, a:3, apps:32},
+      ]},
+      { name:"Bologna", players:[
+        {name:"Riccardo Orsolini", num:7, pos:"FW", nat:"ITA", g:10, a:6, apps:33},
+      ]},
+      { name:"Torino", players:[] },
+      { name:"Udinese", players:[] },
+      { name:"Genoa", players:[] },
+      { name:"Cagliari", players:[] },
+      { name:"Como", players:[] },
+      { name:"Parma", players:[] },
+      { name:"Lecce", players:[] },
+      { name:"Sassuolo", players:[] },
+      { name:"Monza", players:[] },
+      { name:"Frosinone", players:[] },
+      { name:"Venezia", players:[] },
+    ]},
+    ligue1: { label:"Ligue 1", country:"France", teams:[
+      { name:"Paris Saint-Germain", players:[
+        {name:"Ousmane Dembélé", num:10, pos:"FW", nat:"FRA", g:25, a:9, apps:32, capt:true},
+        {name:"Achraf Hakimi", num:2, pos:"DF", nat:"MAR", g:7, a:12, apps:33},
+        {name:"Vitinha", num:17, pos:"MF", nat:"POR", g:6, a:8, apps:34},
+        {name:"Gianluigi Donnarumma", num:1, pos:"GK", nat:"ITA", g:0, a:0, apps:32},
+        {name:"Bradley Barcola", num:29, pos:"FW", nat:"FRA", g:13, a:7, apps:31},
+      ]},
+      { name:"Marseille", players:[
+        {name:"Mason Greenwood", num:10, pos:"FW", nat:"ENG", g:21, a:6, apps:33, capt:true},
+      ]},
+      { name:"Monaco", players:[
+        {name:"Folarin Balogun", num:9, pos:"FW", nat:"USA", g:11, a:3, apps:29},
+      ]},
+      { name:"Lyon", players:[
+        {name:"Alexandre Lacazette", num:10, pos:"FW", nat:"FRA", g:15, a:5, apps:32, capt:true},
+      ]},
+      { name:"Lille", players:[] },
+      { name:"Nice", players:[] },
+      { name:"Lens", players:[] },
+      { name:"Rennes", players:[] },
+      { name:"Strasbourg", players:[] },
+      { name:"Toulouse", players:[] },
+      { name:"Brest", players:[] },
+      { name:"Auxerre", players:[] },
+      { name:"Angers", players:[] },
+      { name:"Le Havre", players:[] },
+      { name:"Lorient", players:[] },
+      { name:"Paris FC", players:[] },
+      { name:"Troyes", players:[] },
+      { name:"Le Mans", players:[] },
+    ]},
+  };
+
+  const PREDICTIONS = {
+    epl: { winner:"Arsenal", odds:"Favourites — market-leading odds", note:"Defending champions after ending a long title drought, with Manchester City (now under Enzo Maresca) and Liverpool (under Andoni Iraola) seen as the closest challengers heading into the season." },
+    laliga: { winner:"Barcelona", odds:"~58% implied title chance", note:"Going for a third straight title under Hansi Flick after a 94-point campaign, with Real Madrid rebuilding under new manager José Mourinho and Atlético Madrid the other main contender." },
+    bundesliga: { winner:"Bayern Munich", odds:"Overwhelming favourites", note:"Statistical models give Bayern a title probability above 90% again, with Borussia Dortmund, RB Leipzig and VfB Stuttgart projected to fight it out for the Champions League places behind them." },
+    seriea: { winner:"Inter Milan", odds:"Roughly even-money favourites", note:"Defending champions under Cristian Chivu after a comfortable 2025/26 title, with Napoli, Juventus and AC Milan (now under Ruben Amorim) expected to lead the chasing pack." },
+    ligue1: { winner:"Paris Saint-Germain", odds:"Heavy favourites", note:"Chasing a sixth straight Ligue 1 title with the deepest squad in France, with Marseille and Monaco the most likely sides to push them." },
+  };
+
+  const state = { view:'players', league:null, team:null };
+
+  function initials(name){ return name.split(' ').filter(Boolean).map(w=>w[0]).join('').slice(0,3).toUpperCase(); }
+
+  function renderLeagues(){
+    const grid = document.getElementById('leagueGrid');
+    grid.innerHTML = Object.entries(DATA).map(([key, l]) => `
+      <button class="league-card" data-key="${key}">
+        <div class="bar" style="background:${LEAGUE_COLORS[key]}"></div>
+        <div class="body">
+          <h3>${l.label}</h3>
+          <p>${l.country}</p>
+          <div class="meta">${l.teams.length} CLUBS</div>
+        </div>
+      </button>`).join('');
+    grid.querySelectorAll('.league-card').forEach(el => el.addEventListener('click', () => selectLeague(el.dataset.key)));
+  }
+
+  function selectLeague(key){
+    state.league = key; state.team = null;
+    renderTeams();
+    document.getElementById('leaguesArea').style.display = 'none';
+    document.getElementById('teamsArea').style.display = 'block';
+    document.getElementById('playersArea').style.display = 'none';
+    updateBreadcrumb();
+  }
+
+  function renderTeams(){
+    const league = DATA[state.league];
+    const grid = document.getElementById('teamGrid');
+    const color = LEAGUE_COLORS[state.league];
+    grid.innerHTML = league.teams.map((t, i) => `
+      <button class="team-card" data-idx="${i}">
+        <div class="badge" style="background:${color}">${initials(t.name)}</div>
+        <div class="info"><h4>${t.name}</h4><span>${t.players.length ? t.players.length + ' listed' : 'roster pending'}</span></div>
+      </button>`).join('');
+    grid.querySelectorAll('.team-card').forEach(el => el.addEventListener('click', () => selectTeam(Number(el.dataset.idx))));
+  }
+
+  function selectTeam(idx){
+    state.team = idx;
+    renderPlayers();
+    document.getElementById('teamsArea').style.display = 'none';
+    document.getElementById('playersArea').style.display = 'block';
+    updateBreadcrumb();
+  }
+
+  function renderPlayers(){
+    const team = DATA[state.league].teams[state.team];
+    const grid = document.getElementById('playerGrid');
+    const color = LEAGUE_COLORS[state.league];
+    if (team.players.length === 0){
+      grid.innerHTML = `<p class="empty-msg">No players listed for ${team.name} yet — ask to add this club's roster.</p>`;
+      return;
+    }
+    grid.innerHTML = team.players.map(p => `
+      <div class="player-card">
+        <div class="avatar" style="background:${color}">${initials(p.name)}<span class="num">${p.num}</span></div>
+        <div class="p-name">${p.name}</div>
+        ${p.capt ? '<div class="p-cap">CAPTAIN</div>' : ''}
+        <div class="p-pos">${p.pos}</div>
+        <div class="p-nat">${p.nat}</div>
+        <div class="p-stats">
+          <span><b>${p.g}</b>G</span>
+          <span><b>${p.a}</b>A</span>
+          <span><b>${p.apps}</b>APP</span>
+        </div>
+      </div>`).join('');
+  }
+
+  function updateBreadcrumb(){
+    const bc = document.getElementById('breadcrumb');
+    if (state.view !== 'players'){ bc.innerHTML = ''; return; }
+    let parts = [`<button id="bcLeagues">Leagues</button>`];
+    if (state.league){
+      parts.push('<span class="sep">/</span>');
+      parts.push(`<button id="bcTeams">${DATA[state.league].label}</button>`);
+    }
+    if (state.league && state.team !== null){
+      parts.push('<span class="sep">/</span>');
+      parts.push(`<span>${DATA[state.league].teams[state.team].name}</span>`);
+    }
+    bc.innerHTML = parts.join('');
+    const bcL = document.getElementById('bcLeagues');
+    if (bcL) bcL.addEventListener('click', () => {
+      state.league = null; state.team = null;
+      document.getElementById('leaguesArea').style.display = 'block';
+      document.getElementById('teamsArea').style.display = 'none';
+      document.getElementById('playersArea').style.display = 'none';
+      updateBreadcrumb();
+    });
+    const bcT = document.getElementById('bcTeams');
+    if (bcT) bcT.addEventListener('click', () => {
+      state.team = null;
+      document.getElementById('teamsArea').style.display = 'block';
+      document.getElementById('playersArea').style.display = 'none';
+      updateBreadcrumb();
+    });
+  }
+
+  function renderPredictions(){
+    const grid = document.getElementById('predictionsGrid');
+    grid.innerHTML = Object.entries(PREDICTIONS).map(([key, p]) => `
+      <div class="pred-card">
+        <div class="tag">${DATA[key].label}</div>
+        <div class="trophy">🏆</div>
+        <h3>${p.winner}</h3>
+        <div class="odds">${p.odds}</div>
+        <p>${p.note}</p>
+      </div>`).join('');
+  }
+
+  function switchTab(tab){
+    state.view = tab;
+    document.getElementById('playersView').style.display = tab === 'players' ? 'block' : 'none';
+    document.getElementById('predictionsView').style.display = tab === 'predictions' ? 'block' : 'none';
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    updateBreadcrumb();
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    renderLeagues();
+    renderPredictions();
+    updateBreadcrumb();
+    document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+  });
+</script>
+</body>
+</html>
